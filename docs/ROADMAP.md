@@ -9,6 +9,7 @@ Quién lo usaría: un operador de baterías o de una planta solar (cuándo carga
 Entregable: cada noche, un pronóstico de 24 horas por barra con intervalos (cuantiles 10–50–90) y una probabilidad de CMg ≈ 0 por hora, publicado y monitoreado contra lo que efectivamente ocurrió.
 
 ## Siguiente tarea
+0. Decidir cómo obtener el vertimiento mensual (ver `DECISIONS.md`, 2026-10-15): el sitio responde 403 a Actions.
 1. Cuando esté el secret `CEN_USER_KEY`: lanzar `ingesta.yml` con `fuentes=sondeo,cmg` y leer `data/logs/sondeo_cen.json` (formato v4, tamaño máximo de página, si existe CMg programado y generación por central). Con eso, afinar `PATRONES_DEFAULT` y `--limit`, y calcular cuántas requests cuesta un día (define el ritmo del backfill).
 
 ## Proyecto · Pronóstico del CMg (~3 semanas)
@@ -26,3 +27,4 @@ Entregable: cada noche, un pronóstico de 24 horas por barra con intervalos (cua
 
 ## Bitácora
 - **2026-10-15** — Creado el repo. Fuentes confirmadas: API SIP del Coordinador (v4 `costo-marginal-online/findByDate`, clave gratuita, 60 consultas/hora por defecto, no filtra por barra), Open-Meteo Historical Forecast (sin clave) y reportes mensuales de Reducciones ERV del Coordinador (XLSX, 1–2 meses de rezago; último: agosto 2026). Ingestas `energia.ingest.{cmg,clima,vertimiento,sondeo}` con checkpoint, tope de requests, manejo de 429 por cabeceras y bitácora en `data/logs/corridas.jsonl`. Workflow `ingesta.yml` (07:30 UTC + manual con fuentes y fechas). 12 tests.
+- **2026-10-15** — Primera corrida real en Actions: clima OK (13 y 14-oct, 1 llamada, ~1,9 KB/día; radiación máx. ~950 W/m², valores coherentes). Vertimiento: HTTP 403 del sitio del Coordinador → fuera del cron hasta decidir. CMg y sondeo esperan el secret `CEN_USER_KEY`.

@@ -37,9 +37,8 @@ jobs:
         id: f
         run: |
           if [ "${{ github.event_name }}" = "schedule" ]; then
+            # Vertimiento queda fuera del cron: el sitio responde 403 a la descarga automática (ver DECISIONS.md).
             F="clima,cmg"
-            # Vertimiento se publica una vez al mes: basta revisarlo los lunes.
-            [ "$(date -u +%u)" = "1" ] && F="$F,vertimiento"
           else
             F="${{ inputs.fuentes }}"
           fi

@@ -1,0 +1,89 @@
+name: Ingesta diaria
+# Corre cada noche a las 07:30 UTC (04:30 Chile en horario de verano, 03:30 en invierno).
+# Ejecución manual: elegir fuentes y fechas (backfill) desde la pestaña Actions.
+on:
+  schedule:
+    - cron: "30 7 * * *"
+  workflow_dispatch:
+    inputs:
+      fuentes:
+        description: "Fuentes separadas por coma: clima, cmg, vertimiento, sondeo"
+        default: "clima,cmg"
+      desde: { description: "Fecha inicio (YYYY-MM-DD), vacío = ayer", required: false }
+      hasta: { description: "Fecha fin (YYYY-MM-DD), vacío = igual a desde", required: false }
+      max_requests: { description: "Tope de requests a la API del Coordinador en esta corrida", default: "50" }
+
+permissions:
+  contents: write
+
+concurrency: ingesta
+
+env:
+  PYTHONPATH: src
+  CEN_USER_KEY: ${{ secrets.CEN_USER_KEY }}
+  DESDE: ${{ inputs.desde }}
+  HASTA: ${{ inputs.hasta }}
+
+jobs:
+  ingesta:
+    runs-on: ubuntu-latest
+    timeout-minutes: 300
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install requests
+      - name: Fuentes de esta corrida
+        id: f
+        run: |
+          if [ "${{ github.event_name }}" = "schedule" ]; then
+            F="clima,cmg"
+            # Vertimiento se publica una vez al mes: basta revisarlo los lunes.
+            [ "$(date -u +%u)" = "1" ] && F="$F,vertimiento"
+          else
+            F="${{ inputs.fuentes }}"
+          fi
+          echo "fuentes=,$F," >> "$GITHUB_OUTPUT"
+          ARGS=""
+          [ -n "$DESDE" ] && ARGS="$ARGS --desde $DESDE"
+          [ -n "$HASTA" ] && ARGS="$ARGS --hasta $HASTA"
+          echo "args=$ARGS" >> "$GITHUB_OUTPUT"
+
+      - name: Clima (Open-Meteo)
+        id: clima
+        if: contains(steps.f.outputs.fuentes, ',clima,')
+        continue-on-error: true
+        run: python -m energia.ingest.clima ${{ steps.f.outputs.args }}
+
+      - name: Sondeo de endpoints del Coordinador
+        id: sondeo
+        if: contains(steps.f.outputs.fuentes, ',sondeo,') && env.CEN_USER_KEY != ''
+        continue-on-error: true
+        run: python -m energia.ingest.sondeo
+
+      - name: Costo marginal (Coordinador)
+        id: cmg
+        if: contains(steps.f.outputs.fuentes, ',cmg,') && env.CEN_USER_KEY != ''
+        continue-on-error: true
+        run: python -m energia.ingest.cmg ${{ steps.f.outputs.args }} --max-requests ${{ inputs.max_requests || '50' }}
+
+      - name: Vertimiento mensual (Coordinador)
+        id: vertimiento
+        if: contains(steps.f.outputs.fuentes, ',vertimiento,')
+        continue-on-error: true
+        run: python -m energia.ingest.vertimiento
+
+      - name: Guardar datos y bitácora en el repo
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "data: ingesta $(date -u +%F) [Fuentes: Coordinador Eléctrico Nacional; Open-Meteo.com]"
+          git pull --rebase -q && git push
+
+      - name: Marcar la corrida como fallida si alguna fuente falló
+        if: steps.clima.outcome == 'failure' || steps.cmg.outcome == 'failure' || steps.vertimiento.outcome == 'failure' || steps.sondeo.outcome == 'failure'
+        run: |
+          echo "Alguna fuente falló: ver data/logs/corridas.jsonl"
+          exit 1

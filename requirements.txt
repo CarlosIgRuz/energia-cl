@@ -1,0 +1,5 @@
+requests>=2.32
+pytest>=8.3
+# Fases siguientes (se activan a medida que se usan):
+# duckdb>=1.1  dbt-duckdb>=1.8  pandas>=2.2  pyarrow>=16  openpyxl>=3.1
+# statsforecast  lightgbm  mlflow  fastapi  uvicorn  evidently

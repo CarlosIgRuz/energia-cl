@@ -1,0 +1,302 @@
+{
+  "ejecutado_en": "2026-10-18T04:09:20+00:00",
+  "requests": 14,
+  "resultados": {
+    "cmg_online": {
+      "ruta": "costo-marginal-online/v4/findByDate",
+      "params": {
+        "startDate": "2026-10-16",
+        "endDate": "2026-10-16",
+        "page": 1,
+        "limit": 10
+      },
+      "status": 200,
+      "claves_respuesta": [
+        "data",
+        "limit",
+        "page",
+        "totalPages"
+      ],
+      "meta": {
+        "page": 1,
+        "limit": 10,
+        "totalPages": 15802
+      },
+      "total_paginas": 15802,
+      "n_registros": 10,
+      "ejemplo": {
+        "id_info": "2728",
+        "barra_info": "BA S/E CASTILLA 110KV BP1",
+        "barra_transf": "CASTILLA______110",
+        "fecha": "2026-10-16",
+        "hra": "0",
+        "min": "0",
+        "cmg_clp_kwh_": "3.00766",
+        "cmg_usd_mwh_": "3.04718",
+        "version": "EN LINEA",
+        "fecha_hora": "2026-10-16 00:00",
+        "fecha_minuto": "2026-10-16 00:00"
+      },
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "cmg_online_pagina_grande": {
+      "ruta": "costo-marginal-online/v4/findByDate",
+      "params": {
+        "startDate": "2026-10-16",
+        "endDate": "2026-10-16",
+        "page": 1,
+        "limit": 10000
+      },
+      "status": 200,
+      "claves_respuesta": [
+        "data",
+        "limit",
+        "page",
+        "totalPages"
+      ],
+      "meta": {
+        "page": 1,
+        "limit": 10000,
+        "totalPages": 16
+      },
+      "total_paginas": 16,
+      "n_registros": 10000,
+      "ejemplo": {
+        "id_info": "802",
+        "barra_info": "BA S/E LO PRADO 12KV BP1",
+        "barra_transf": "LO_PRADO______012",
+        "fecha": "2026-10-16",
+        "hra": "1",
+        "min": "30",
+        "cmg_clp_kwh_": "3.02256",
+        "cmg_usd_mwh_": "3.06228",
+        "version": "EN LINEA",
+        "fecha_hora": "2026-10-16 01:00",
+        "fecha_minuto": "2026-10-16 01:30"
+      },
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "cmg_real": {
+      "ruta": "costo-marginal-real/v4/findByDate",
+      "params": {
+        "startDate": "2026-06-20",
+        "endDate": "2026-06-20",
+        "page": 1,
+        "limit": 10
+      },
+      "status": 200,
+      "claves_respuesta": [
+        "data",
+        "limit",
+        "page",
+        "totalPages",
+        "type"
+      ],
+      "meta": {
+        "page": 1,
+        "limit": 10,
+        "totalPages": 15620
+      },
+      "total_paginas": 15620,
+      "n_registros": 10,
+      "ejemplo": {
+        "id_info": "94",
+        "barra_info": "BA S/E TOTORALILLO 110KV BP1",
+        "barra_transf": "TOTORALILLO___110",
+        "fecha": "2026-06-20",
+        "hra": "0",
+        "min": "0",
+        "cmg_clp_kwh_": "57.21058",
+        "cmg_usd_mwh_": "63.76641",
+        "version": "REAL-DEF",
+        "fecha_hora": "2026-06-20 00:00",
+        "fecha_minuto": "2026-06-20 00:00"
+      },
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "cmg_programado_v4": {
+      "ruta": "costo-marginal-programado/v4/findByDate",
+      "params": {
+        "startDate": "2026-10-16",
+        "endDate": "2026-10-16",
+        "page": 1,
+        "limit": 10
+      },
+      "status": 404,
+      "error": "HTTP 404 en costo-marginal-programado/v4/findByDate: No Mapping Rule matched",
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "cmg_programado_v1": {
+      "ruta": "costo-marginal-programado/v1/findByDate",
+      "params": {
+        "startDate": "2026-10-16",
+        "endDate": "2026-10-16",
+        "page": 1,
+        "limit": 10
+      },
+      "status": 404,
+      "error": "HTTP 404 en costo-marginal-programado/v1/findByDate: No Mapping Rule matched",
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "generacion_real_v4": {
+      "ruta": "generacion-real/v4/findByDate",
+      "params": {
+        "startDate": "2026-10-16",
+        "endDate": "2026-10-16",
+        "page": 1,
+        "limit": 10
+      },
+      "status": 404,
+      "error": "HTTP 404 en generacion-real/v4/findByDate: No Mapping Rule matched",
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "generacion_real_v3": {
+      "ruta": "generacion-real/v3/findByDate",
+      "params": {
+        "startDate": "2026-10-16",
+        "endDate": "2026-10-16",
+        "page": 1,
+        "limit": 10
+      },
+      "status": 200,
+      "claves_respuesta": [
+        "data",
+        "endDate",
+        "page",
+        "pageSize",
+        "startDate",
+        "totalPages"
+      ],
+      "meta": {
+        "page": 1,
+        "totalPages": 3536
+      },
+      "total_paginas": 3536,
+      "n_registros": 10,
+      "ejemplo": {
+        "id_opreal": "15734",
+        "llave_opreal": "PMGD PFV Nihue",
+        "id_central": "2009",
+        "central": "PMGD PFV NIHUE",
+        "gen_real_mw": "0.0",
+        "fecha_hora": "2026-10-16 23:00:00",
+        "hora": "24",
+        "potencia_maxima": "3.045",
+        "id_propietario": "2129",
+        "propietario": "NIHUE SOLAR SPA",
+        "id_coordinado": "2389",
+        "coordinado": "CFC HOLDINGS SPA",
+        "tipo_tecnologia": "Solar",
+        "subtipo_tecnologia": null,
+        "factor_ernc": "1.0",
+        "alcance": "global",
+        "valor_ernc": "0.0"
+      },
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "generacion_real_v2": {
+      "ruta": "generacion-real/v2/findByDate",
+      "params": {
+        "startDate": "2026-10-16",
+        "endDate": "2026-10-16",
+        "page": 1,
+        "limit": 10
+      },
+      "status": 404,
+      "error": "HTTP 404 en generacion-real/v2/findByDate: No Mapping Rule matched",
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "generacion_real_v1": {
+      "ruta": "generacion-real/v1/findByDate",
+      "params": {
+        "startDate": "2026-10-16",
+        "endDate": "2026-10-16",
+        "page": 1,
+        "limit": 10
+      },
+      "status": 404,
+      "error": "HTTP 404 en generacion-real/v1/findByDate: No Mapping Rule matched",
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "demanda_real_v1": {
+      "ruta": "demanda-real/v1/findByDate",
+      "params": {
+        "startDate": "2026-10-16",
+        "endDate": "2026-10-16",
+        "page": 1,
+        "limit": 10
+      },
+      "status": 404,
+      "error": "HTTP 404 en demanda-real/v1/findByDate: Error 404: Recurso no encontrado.",
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "v2_generacion_centrales": {
+      "ruta": "sipub/api/v2/recursos/generacion_centrales/",
+      "params": {
+        "fecha": "2026-06-20",
+        "limit": 10
+      },
+      "status": 404,
+      "error": "HTTP 404 en sipub/api/v2/recursos/generacion_centrales/: Error 404: Recurso no encontrado.",
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    },
+    "v2_cmg_reales": {
+      "ruta": "sipub/api/v2/recursos/costos_marginales_reales/",
+      "params": {
+        "fecha": "2026-06-20",
+        "limit": 10
+      },
+      "status": 404,
+      "error": "HTTP 404 en sipub/api/v2/recursos/costos_marginales_reales/: Error 404: Recurso no encontrado.",
+      "rate_limit": {
+        "X-Rate-Limit": null,
+        "X-Rate-Limit-Remaining": null,
+        "X-Rate-Limit-Reset": null
+      }
+    }
+  }
+}

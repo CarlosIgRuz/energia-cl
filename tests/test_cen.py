@@ -98,7 +98,7 @@ def test_cmg_pagina_desde_cero_filtra_barras_y_guarda_catalogo(tmp_path):
     assert [r["barra_transf"] for r in datos["registros"]] == ["CRUCERO_______220", "CHARRUA_______220"]
     assert datos["n_registros_api"] == 4 and datos["fuente"] == "Coordinador Eléctrico Nacional"
     assert json.loads((tmp_path / "ref/barras_cmg.json").read_text())["OTRA"] == 2
-    log = json.loads((tmp_path / "logs/corridas.jsonl").read_text().splitlines()[0])
+    log = json.loads((tmp_path / "logs/corridas_cmg_online.jsonl").read_text().splitlines()[0])
     assert log["requests"] == 2 and CLAVE not in json.dumps(log)
 
 
@@ -140,7 +140,7 @@ def test_backfill_desc_corta_tras_dias_vacios(tmp_path):
              logs_dir=tmp_path / "logs", client=c)
     pedidos = [p["startDate"] for _, p in c.session.llamadas]
     assert pedidos[0] == ayer.isoformat() and len(pedidos) == 4  # 2 con datos + 2 vacíos y corta
-    log = json.loads((tmp_path / "logs/corridas.jsonl").read_text().splitlines()[0])
+    log = json.loads((tmp_path / "logs/corridas_cmg_online.jsonl").read_text().splitlines()[0])
     assert "corte" in log
 
 

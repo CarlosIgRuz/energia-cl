@@ -56,7 +56,13 @@ jobs:
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data
           git diff --cached --quiet || git commit -m "data: ingesta $(date -u +%F) [Fuentes: Open-Meteo.com; Coordinador Eléctrico Nacional]"
-          for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 10; done
+          # Si no logra subir tras 3 intentos, falla en forma visible (antes los datos se perdían en silencio).
+          for i in 1 2 3; do
+            if git pull --rebase -q && git push; then exit 0; fi
+            git rebase --abort 2>/dev/null || true
+            sleep 15
+          done
+          echo "No se pudieron subir los datos"; exit 1
       - name: Marcar la corrida como fallida si alguna fuente falló
         if: steps.clima.outcome == 'failure' || steps.vertimiento.outcome == 'failure'
         run: exit 1

@@ -63,5 +63,5 @@ def test_vertimiento_descarga_solo_nuevos(tmp_path):
     n = len(s.llamadas)
     vertimiento.main(["--anios", "2026"], raw_dir=tmp_path, logs_dir=tmp_path, session=s, pausa_s=0)
     assert len(s.llamadas) == n + 2  # índice + página del año, sin volver a bajar el xlsx
-    log = [json.loads(x) for x in (tmp_path / "corridas.jsonl").read_text().splitlines()]
+    log = [json.loads(x) for x in (tmp_path / "corridas_vertimiento.jsonl").read_text().splitlines()]
     assert log[0]["nuevos"] and not log[1]["nuevos"]

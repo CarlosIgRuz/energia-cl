@@ -5,7 +5,7 @@ Trabaja sobre un clon en la nube; el PC del usuario no es necesario.
 
 ## Reglas
 - **Secretos:** nunca escribir la clave del Coordinador (`CEN_USER_KEY`) ni otros secretos en código, logs, commits o chats. Vive solo como secret del repo en GitHub; el agente nunca la pide.
-- **Red:** la red del agente no llega a sitios del gobierno. Toda descarga corre en GitHub Actions: `cmg.yml` (único workflow que usa la clave del Coordinador; día nuevo + historial, 4×/día) e `ingesta.yml` (fuentes sin clave). Nunca lanzar consultas al Coordinador desde otro workflow mientras `cmg.yml` corre. El agente lanza corridas con `gh workflow run` y lee los resultados en `data/logs/` (los logs de Actions no son legibles desde el agente).
+- **Red:** la red del agente no llega a sitios del gobierno. Toda descarga corre en GitHub Actions: `cmg.yml` (único workflow que usa la clave del Coordinador; día nuevo + historial, 4×/día) e `ingesta.yml` (fuentes sin clave). Nunca lanzar consultas al Coordinador desde otro workflow mientras `cmg.yml` corre. El agente lanza corridas con `gh workflow run` y lee los resultados en `data/logs/corridas_<fuente>.jsonl` (los logs de Actions no son legibles desde el agente).
 - **Condiciones de uso:**
   - API SIP del Coordinador: respetar el límite de la cuenta (429 tras ~24 requests seguidos, sin cabeceras de reset; se usa 1 request cada 3 min y páginas de 10.000, que empiezan en 0). Tope por corrida (`--max-requests`), checkpoint para retomar, nunca eludir el límite ni usar varias claves.
   - Open-Meteo: uso no comercial, < 10.000 llamadas/día; datos CC BY 4.0.

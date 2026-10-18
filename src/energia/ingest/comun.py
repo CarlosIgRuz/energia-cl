@@ -50,10 +50,11 @@ def leer_json_gz(path: Path):
 
 
 def registrar_corrida(fuente: str, resumen: dict, logs_dir: Path = LOGS) -> None:
-    """Agrega una línea a data/logs/corridas.jsonl: los logs de Actions no son legibles desde el agente."""
+    """Agrega una línea a data/logs/corridas_<fuente>.jsonl (los logs de Actions no son legibles desde el agente).
+    Un archivo por fuente: si dos workflows escribieran el mismo archivo, el `git pull --rebase` chocaría."""
     logs_dir.mkdir(parents=True, exist_ok=True)
     linea = {"fuente": fuente, "terminada_en": ahora_utc(), **resumen}
-    with open(logs_dir / "corridas.jsonl", "a", encoding="utf-8") as f:
+    with open(logs_dir / f"corridas_{fuente}.jsonl", "a", encoding="utf-8") as f:
         f.write(json.dumps(linea, ensure_ascii=False) + "\n")
 
 

@@ -14,14 +14,19 @@ from pathlib import Path
 from energia.ingest.cen import CENClient, ErrorCEN, registros_y_paginas
 from energia.ingest.comun import LOGS, ahora_utc, hoy_chile
 
-# (nombre, ruta, días hacia atrás, parámetros: "v4" usa startDate/endDate/page/limit, "v2" usa fecha/limit)
+# Sondeo de filtros: con limit=1, `totalPages` = cantidad total de registros que calzan. Si algún parámetro
+# reduce ese número respecto de la base, la API sí filtra por barra (un día pasaría de 16 páginas a 1).
+BARRA = "CRUCERO_______220"
 CANDIDATOS = [
-    # Confirmados el 2026-10-18: CMg en línea (cada 15 min, ~1.650 barras), CMg real definitivo (rezago de meses)
-    # y generación real por central con tecnología (v3). Sin CMg programado ni demanda en v4.
-    ("cmg_online", "costo-marginal-online/v4/findByDate", 2, "v4", 10),
-    ("cmg_real", "costo-marginal-real/v4/findByDate", 120, "v4", 10),
-    ("generacion_real_v3", "generacion-real/v3/findByDate", 2, "v4", 10),
+    ("base", {}),
+    ("barra_transf", {"barra_transf": BARRA}),
+    ("barra", {"barra": BARRA}),
+    ("barraTransf", {"barraTransf": BARRA}),
+    ("barra_mnemotecnico", {"barra_mnemotecnico": BARRA}),
+    ("barra_info", {"barra_info": "BA S/E CRUCERO 220KV BP1"}),
+    ("nombre", {"nombre": BARRA}),
 ]
+RUTA = "costo-marginal-online/v4/findByDate"
 
 
 def resumir(resp) -> dict:
@@ -36,20 +41,23 @@ def resumir(resp) -> dict:
 def main(logs_dir: Path = LOGS, client: CENClient | None = None) -> int:
     client = client or CENClient(pausa_s=180, espera_max_s=600)
     resultados = {}
-    for nombre, ruta, atras, estilo, limit in CANDIDATOS:
-        d = hoy_chile() - timedelta(days=atras)
-        params = ({"startDate": d.isoformat(), "endDate": d.isoformat(), "page": 0, "limit": limit, "pageSize": limit}
-                  if estilo == "v4" else {"fecha": d.isoformat(), "limit": limit})
-        res = {"ruta": ruta, "params": params}
+    d = hoy_chile() - timedelta(days=2)
+    for nombre, extra in CANDIDATOS:
+        params = {"startDate": d.isoformat(), "endDate": d.isoformat(), "page": 0, "limit": 1, **extra}
+        res = {"ruta": RUTA, "params": params}
         try:
-            res.update(status=200, **resumir(client.get(ruta, params, reintentos=2)))
+            res.update(status=200, **resumir(client.get(RUTA, params, reintentos=2)))
         except ErrorCEN as e:
             res.update(status=e.status, error=client.ocultar(str(e))[:300])
         res["rate_limit"] = client.ultimo_rate
         resultados[nombre] = res
         print(nombre, res.get("status"), res.get("n_registros"), res.get("total_paginas"))
     logs_dir.mkdir(parents=True, exist_ok=True)
-    salida = {"ejecutado_en": ahora_utc(), "requests": client.requests_hechos, "resultados": resultados}
+    base = resultados.get("base", {}).get("total_paginas")
+    filtran = [n for n, r in resultados.items() if n != "base" and r.get("total_paginas") and base
+               and r["total_paginas"] < base]
+    salida = {"ejecutado_en": ahora_utc(), "requests": client.requests_hechos, "filtran_por_barra": filtran,
+              "resultados": resultados, "traza": client.traza}
     (logs_dir / "sondeo_cen.json").write_text(json.dumps(salida, ensure_ascii=False, indent=2), encoding="utf-8")
     return 0
 

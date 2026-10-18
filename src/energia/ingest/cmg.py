@@ -176,7 +176,8 @@ def main(argv: list[str] | None = None, raw_dir: Path = DATA_RAW, ref_dir: Path 
         pendientes = [d for d in dias if not ruta_dia(raw_dir, d).exists()]
         resumen.update(requests=client.requests_hechos, respuestas_http=dict(client.respuestas),
                        espera_rate_limit_s=round(client.espera_total_s), minutos=round((reloj() - inicio) / 60, 1),
-                       dias_pendientes_en_rango=len(pendientes), barras_distintas_vistas=len(vistas))
+                       dias_pendientes_en_rango=len(pendientes), barras_distintas_vistas=len(vistas),
+                       traza=client.traza)
         registrar_corrida("cmg_online", resumen, logs_dir)
     return 1 if resumen["error"] else 0
 

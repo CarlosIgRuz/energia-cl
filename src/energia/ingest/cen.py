@@ -8,6 +8,7 @@ X-Rate-Limit-*). El cliente respeta esas cabeceras y nunca expone la clave en er
 from __future__ import annotations
 
 import os
+from datetime import datetime, timezone
 import time
 from collections import Counter
 from datetime import date
@@ -56,6 +57,8 @@ class CENClient:
         self.respuestas: Counter[str] = Counter()
         self.espera_total_s = 0.0
         self.ultimo_rate: dict = {}
+        # Traza de cada request (hora UTC, código, bytes, segundos): evidencia para deducir la regla del límite.
+        self.traza: list[dict] = []
 
     # ---- utilidades -------------------------------------------------------
     def ocultar(self, texto: str) -> str:
@@ -106,6 +109,12 @@ class CENClient:
                 continue
             self.requests_hechos += 1
             self.respuestas[str(resp.status_code)] += 1
+            self.traza.append({
+                "t": datetime.now(timezone.utc).strftime("%H:%M:%S"), "status": resp.status_code,
+                "kb": round(len(getattr(resp, "content", b"") or b"") / 1024),
+                "s": round(self._reloj() - self._ultimo_request, 1),
+                "headers": {k: v for k, v in resp.headers.items() if "limit" in k.lower() or k.lower() == "retry-after"},
+            })
             self.ultimo_rate = {
                 k: resp.headers.get(k) for k in ("X-Rate-Limit", "X-Rate-Limit-Remaining", "X-Rate-Limit-Reset")
             }

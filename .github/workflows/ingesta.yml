@@ -11,7 +11,7 @@ on:
         default: "clima,cmg"
       desde: { description: "Fecha inicio (YYYY-MM-DD), vacío = ayer", required: false }
       hasta: { description: "Fecha fin (YYYY-MM-DD), vacío = igual a desde", required: false }
-      max_requests: { description: "Tope de requests a la API del Coordinador en esta corrida", default: "50" }
+      max_requests: { description: "Tope de requests a la API del Coordinador en esta corrida", default: "40" }
 
 permissions:
   contents: write
@@ -27,7 +27,7 @@ env:
 jobs:
   ingesta:
     runs-on: ubuntu-latest
-    timeout-minutes: 300
+    timeout-minutes: 200
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -64,7 +64,11 @@ jobs:
         id: cmg
         if: contains(steps.f.outputs.fuentes, ',cmg,') && env.CEN_USER_KEY != ''
         continue-on-error: true
-        run: python -m energia.ingest.cmg ${{ steps.f.outputs.args }} --max-requests ${{ inputs.max_requests || '50' }}
+        # Sin fechas: repasa los últimos 7 días (los ya descargados no gastan requests), así un día fallido se recupera solo.
+        run: |
+          ARGS="${{ steps.f.outputs.args }}"
+          [ -z "$ARGS" ] && ARGS="--desde $(TZ=America/Santiago date -d '7 days ago' +%F) --hasta $(TZ=America/Santiago date -d yesterday +%F)"
+          python -m energia.ingest.cmg $ARGS --max-requests ${{ inputs.max_requests || '40' }} --max-minutos 150
 
       - name: Vertimiento mensual (Coordinador)
         id: vertimiento

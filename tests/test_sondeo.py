@@ -18,6 +18,6 @@ def test_sondeo_registra_estado_por_ruta_sin_la_clave(tmp_path):
     res = json.loads(texto)["resultados"]
     assert res["cmg_online"]["status"] == 200 and res["cmg_online"]["total_paginas"] == 15
     assert res["cmg_online"]["ejemplo"]["barra_transf"] == "CRUCERO"
-    assert res["generacion_real_v4"]["status"] == 404
+    assert res["generacion_real_v3"]["status"] == 404
     assert "CLAVE123" not in texto
     assert c.requests_hechos == len(sondeo.CANDIDATOS)

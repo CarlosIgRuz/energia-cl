@@ -36,7 +36,8 @@ class CENClient:
         user_key: str | None = None,
         session: requests.Session | None = None,
         pausa_s: float = 1.0,
-        espera_max_s: float = 900,
+        espera_max_s: float = 1800,
+        espera_429_s: float = 300,
         sleep=time.sleep,
         reloj=time.time,
     ):
@@ -47,6 +48,8 @@ class CENClient:
         self.session.headers.update({"User-Agent": USER_AGENT})
         self.pausa_s = pausa_s
         self.espera_max_s = espera_max_s
+        self.espera_429_s = espera_429_s
+        self._ultimo_request: float | None = None
         self._sleep = sleep
         self._reloj = reloj
         self.requests_hechos = 0
@@ -59,13 +62,15 @@ class CENClient:
         return texto.replace(self.user_key, "***")
 
     def _esperar(self, segundos: float) -> None:
-        if segundos > self.espera_max_s:
-            raise LimiteAlcanzado(f"La API pide esperar {segundos:.0f} s (máximo {self.espera_max_s:.0f} s)", 429)
+        if self.espera_total_s + segundos > self.espera_max_s:  # presupuesto de espera acumulado por corrida
+            raise LimiteAlcanzado(
+                f"Límite de la API: esperar {segundos:.0f} s superaría el máximo de {self.espera_max_s:.0f} s por corrida", 429)
         self.espera_total_s += segundos
         self._sleep(segundos)
 
-    def segundos_hasta_reset(self, headers) -> float:
-        """Retry-After (segundos) o X-Rate-Limit-Reset (timestamp Unix o segundos). Por defecto 60 s."""
+    def segundos_hasta_reset(self, headers, intento: int = 0) -> float:
+        """Retry-After (segundos) o X-Rate-Limit-Reset (timestamp Unix o segundos).
+        Sin cabeceras (lo que hace hoy la API v4) la espera crece: espera_429_s × (intento + 1)."""
         ra = headers.get("Retry-After")
         if ra and str(ra).strip().isdigit():
             return float(ra) + 1
@@ -73,7 +78,7 @@ class CENClient:
         try:
             r = float(reset)
         except (TypeError, ValueError):
-            return 60.0
+            return self.espera_429_s * (intento + 1)
         if r > 1e9:  # timestamp Unix (s o ms)
             if r > 1e12:
                 r /= 1000
@@ -84,7 +89,14 @@ class CENClient:
     def get(self, ruta: str, params: dict, reintentos: int = 4) -> dict | list:
         url = f"{BASE_URL}/{ruta.lstrip('/')}"
         ultimo = "sin respuesta"
+        n429 = 0
         for intento in range(reintentos):
+            # Ritmo mínimo entre requests (pausa_s), contado desde el inicio del request anterior.
+            if self._ultimo_request is not None:
+                falta = self.pausa_s - (self._reloj() - self._ultimo_request)
+                if falta > 0:
+                    self._sleep(falta)
+            self._ultimo_request = self._reloj()
             try:
                 resp = self.session.get(url, params={**params, "user_key": self.user_key}, timeout=120)
             except requests.RequestException as e:
@@ -100,15 +112,14 @@ class CENClient:
             if resp.status_code == 200:
                 if str(resp.headers.get("X-Rate-Limit-Remaining", "")).strip() == "0":
                     self._esperar(self.segundos_hasta_reset(resp.headers))
-                else:
-                    self._sleep(self.pausa_s)
                 try:
                     return resp.json()
                 except ValueError:
                     raise ErrorCEN(f"Respuesta no JSON en {ruta}", 200) from None
             if resp.status_code == 429:
                 ultimo = "HTTP 429"
-                self._esperar(self.segundos_hasta_reset(resp.headers))
+                self._esperar(self.segundos_hasta_reset(resp.headers, n429))
+                n429 += 1
                 continue
             if resp.status_code < 500:  # 4xx distinto de 429: no tiene sentido reintentar
                 cuerpo = self.ocultar(resp.text[:300])
@@ -117,7 +128,8 @@ class CENClient:
             self._sleep(2 ** intento * 5)
         raise ErrorCEN(f"Fallo al consultar {ruta}: {ultimo}") from None
 
-    def find_by_date(self, ruta: str, desde: date, hasta: date, pagina: int = 1, limit: int = 5000):
+    def find_by_date(self, ruta: str, desde: date, hasta: date, pagina: int = 0, limit: int = 50000):
+        """Las páginas de la API v4 parten en 0 (verificado: con page=1 faltaban los primeros registros del día)."""
         params = {"startDate": desde.isoformat(), "endDate": hasta.isoformat(), "page": pagina, "limit": limit}
         return self.get(ruta, params)
 

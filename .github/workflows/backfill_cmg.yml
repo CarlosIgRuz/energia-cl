@@ -1,0 +1,49 @@
+name: Backfill CMg
+# Recorre el historial del CMg desde el 15-jul-2024 hacia atrás desde ayer (días recientes primero), a un
+# ritmo de 1 request cada 3 minutos para respetar el límite de la API del Coordinador. Cada corrida dura
+# hasta ~5 h y deja checkpoint; cuando no quedan días pendientes termina en segundos sin consultar la API.
+on:
+  schedule:
+    - cron: "15 1,7,13,19 * * *"
+  workflow_dispatch:
+    inputs:
+      desde: { description: "Inicio del historial (YYYY-MM-DD)", default: "2024-07-15" }
+      max_minutos: { description: "Presupuesto de la corrida (minutos)", default: "290" }
+
+permissions:
+  contents: write
+
+# Misma cola que la ingesta diaria: nunca dos corridas usando la clave a la vez ni empujando al mismo tiempo.
+concurrency: ingesta
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 320
+    env:
+      PYTHONPATH: src
+      CEN_USER_KEY: ${{ secrets.CEN_USER_KEY }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with: { python-version: "3.11" }
+      - run: pip install requests
+      - name: Descargar días pendientes
+        if: env.CEN_USER_KEY != ''
+        continue-on-error: true
+        id: cmg
+        run: |
+          python -m energia.ingest.cmg --desde ${{ inputs.desde || '2024-07-15' }} \
+            --hasta $(TZ=America/Santiago date -d yesterday +%F) --orden desc \
+            --intervalo-s 180 --max-requests 200 --max-minutos ${{ inputs.max_minutos || '290' }}
+      - name: Guardar datos y bitácora en el repo
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add data
+          git diff --cached --quiet || git commit -m "data: backfill CMg $(date -u +%F) [Fuente: Coordinador Eléctrico Nacional]"
+          git pull --rebase -q && git push
+      - name: Marcar fallida si hubo error
+        if: steps.cmg.outcome == 'failure'
+        run: exit 1

@@ -16,19 +16,12 @@ from energia.ingest.comun import LOGS, ahora_utc, hoy_chile
 
 # (nombre, ruta, días hacia atrás, parámetros: "v4" usa startDate/endDate/page/limit, "v2" usa fecha/limit)
 CANDIDATOS = [
+    # Confirmados el 2026-10-18: CMg en línea (cada 15 min, ~1.650 barras), CMg real definitivo (rezago de meses)
+    # y generación real por central con tecnología (v3). Sin CMg programado ni demanda en v4.
     ("cmg_online", "costo-marginal-online/v4/findByDate", 2, "v4", 10),
-    ("cmg_online_pagina_grande", "costo-marginal-online/v4/findByDate", 2, "v4", 10000),
+    ("cmg_online_pagina_50k", "costo-marginal-online/v4/findByDate", 2, "v4", 50000),
     ("cmg_real", "costo-marginal-real/v4/findByDate", 120, "v4", 10),
-    # El CMg programado (pronóstico oficial del día siguiente) sería el baseline más exigente.
-    ("cmg_programado_v4", "costo-marginal-programado/v4/findByDate", 2, "v4", 10),
-    ("cmg_programado_v1", "costo-marginal-programado/v1/findByDate", 2, "v4", 10),
-    ("generacion_real_v4", "generacion-real/v4/findByDate", 2, "v4", 10),
     ("generacion_real_v3", "generacion-real/v3/findByDate", 2, "v4", 10),
-    ("generacion_real_v2", "generacion-real/v2/findByDate", 2, "v4", 10),
-    ("generacion_real_v1", "generacion-real/v1/findByDate", 2, "v4", 10),
-    ("demanda_real_v1", "demanda-real/v1/findByDate", 2, "v4", 10),
-    ("v2_generacion_centrales", "sipub/api/v2/recursos/generacion_centrales/", 120, "v2", 10),
-    ("v2_cmg_reales", "sipub/api/v2/recursos/costos_marginales_reales/", 120, "v2", 10),
 ]
 
 
@@ -42,11 +35,11 @@ def resumir(resp) -> dict:
 
 
 def main(logs_dir: Path = LOGS, client: CENClient | None = None) -> int:
-    client = client or CENClient(espera_max_s=120)
+    client = client or CENClient(pausa_s=180, espera_max_s=600)
     resultados = {}
     for nombre, ruta, atras, estilo, limit in CANDIDATOS:
         d = hoy_chile() - timedelta(days=atras)
-        params = ({"startDate": d.isoformat(), "endDate": d.isoformat(), "page": 1, "limit": limit}
+        params = ({"startDate": d.isoformat(), "endDate": d.isoformat(), "page": 0, "limit": limit, "pageSize": limit}
                   if estilo == "v4" else {"fecha": d.isoformat(), "limit": limit})
         res = {"ruta": ruta, "params": params}
         try:

@@ -5,9 +5,10 @@ La API v4 (`costo-marginal-online/v4/findByDate`) entrega el CMg cada 15 minutos
 las barras elegidas (`--barras`). Además se lleva un catálogo de todas las barras vistas
 (`data/ref/barras_cmg.json`) para poder cambiar la selección más adelante.
 
-Límite de la API: tras ~24 requests seguidos responde 429 sin cabeceras de reset, así que se va a un ritmo
-fijo (`--intervalo-s`) y con presupuesto de tiempo por corrida; si igual llega un 429 se espera y, si no
-alcanza, se corta sin error y la próxima corrida retoma desde el checkpoint.
+Límite de la API (medido el 2026-10-18 con trazas): responde 429 sin cabeceras de reset; tolera ~1 página
+de 10.000 registros (~2,7 MB) cada ~20 min, mientras que requests mínimos (limit=1) pasan cada ~3 min. Por eso
+se va a un ritmo fijo (`--intervalo-s`, 20 min) con presupuesto de tiempo por corrida; si igual llega un 429
+se espera y, si no alcanza, se corta sin error y la próxima corrida retoma desde el checkpoint.
 
 Salida: data/raw/cmg_online/fecha=YYYY-MM-DD.json.gz (+ checkpoint `.parcial.json` si la corrida se corta).
 Uso:    python -m energia.ingest.cmg --desde 2026-10-01 --hasta 2026-10-07
@@ -129,7 +130,8 @@ def main(argv: list[str] | None = None, raw_dir: Path = DATA_RAW, ref_dir: Path 
     p.add_argument("--recurso", default=RECURSO_DEFAULT)
     p.add_argument("--limit", type=int, default=10000, help="registros por página (50.000 hace caer al servidor)")
     p.add_argument("--barras", default=",".join(BARRAS_DEFAULT), help="nombres exactos de barra_transf, con comas")
-    p.add_argument("--intervalo-s", type=float, default=150, help="segundos mínimos entre requests")
+    p.add_argument("--intervalo-s", type=float, default=1200,
+                   help="segundos mínimos entre requests (medido: la API tolera ~1 página de 10.000 cada 20 min)")
     p.add_argument("--max-requests", type=int, default=100, help="tope de requests por corrida")
     p.add_argument("--max-minutos", type=float, default=330, help="presupuesto de tiempo por corrida")
     p.add_argument("--parar-tras-vacios", type=int, default=3, help="corta si encuentra N días seguidos sin datos")
@@ -140,7 +142,9 @@ def main(argv: list[str] | None = None, raw_dir: Path = DATA_RAW, ref_dir: Path 
     if args.orden == "desc":
         dias.reverse()
     barras = [b.strip() for b in args.barras.split(",") if b.strip()]
-    client = client or CENClient(pausa_s=args.intervalo_s)
+    # Ante un 429 se espera lo mismo que el intervalo (mínimo 5 min): los reintentos rápidos solo alargan el bloqueo.
+    client = client or CENClient(pausa_s=args.intervalo_s, espera_429_s=max(300, args.intervalo_s),
+                                 espera_max_s=args.max_minutos * 60)
     inicio = reloj()
 
     def puede_seguir() -> bool:

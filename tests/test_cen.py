@@ -56,6 +56,13 @@ def test_429_sin_cabeceras_espera_creciente_y_corta_por_presupuesto():
     assert r.esperas == [300, 600]  # la tercera (900) superaría el presupuesto de 1000 s
 
 
+def test_429_persistente_termina_como_limite_no_como_error():
+    c, r = cliente(lambda u, p: FakeResp(429), espera_429_s=10, espera_max_s=10_000)
+    with pytest.raises(LimiteAlcanzado):
+        c.get("x", {}, reintentos=3)
+    assert r.esperas == [10, 20, 30]
+
+
 def test_ritmo_minimo_entre_requests():
     c, r = cliente(lambda u, p: FakeResp(200, {"data": []}), pausa_s=150)
     c.get("x", {})

@@ -10,7 +10,7 @@ Entregable: cada noche, un pronóstico de 24 horas por barra con intervalos (cua
 
 ## Siguiente tarea
 0. Decidir cómo obtener el vertimiento mensual (ver `DECISIONS.md`, 2026-10-15): el sitio responde 403 a Actions.
-1. Revisar en `data/logs/corridas.jsonl` la descarga de prueba del 17-oct y la primera corrida de `backfill_cmg.yml`: requests por día (¿acepta 50.000 por página?), cantidad de 429 y días por corrida. Si hay 429, subir `--intervalo-s`.
+1. Revisar en `data/logs/corridas.jsonl` las primeras corridas de `cmg.yml` (la primera automática es a las 07:15 UTC del 18-oct): días completos por corrida, cantidad de 429 y si aparece `limite`. Si hay 429 frecuentes, subir `--intervalo-s` (hoy 180 s). Verificar un archivo del día: 9 barras × 96 cuartos de hora, empezando a las 00:00.
 2. Con ~2 meses de CMg descargados, empezar P1.4 (warehouse) en paralelo al backfill.
 
 ## Proyecto · Pronóstico del CMg (~3 semanas)
@@ -31,3 +31,4 @@ Entregable: cada noche, un pronóstico de 24 horas por barra con intervalos (cua
 - **2026-10-15** — Primera corrida real en Actions: clima OK (13 y 14-oct, 1 llamada, ~1,9 KB/día; radiación máx. ~950 W/m², valores coherentes). Vertimiento: HTTP 403 del sitio del Coordinador → fuera del cron hasta decidir. CMg y sondeo esperan el secret `CEN_USER_KEY`.
 - **2026-10-15** — Backfill de clima completo: 2024-07-15 → 2026-10-14 (822 días, 27 llamadas a Open-Meteo, 3,3 MB).
 - **2026-10-18** — Clave del Coordinador configurada (plan Información Pública SIP). Sondeo: funcionan CMg en línea (15 min, ~1.650 barras), CMg real definitivo y generación real por central (v3); no hay CMg programado ni demanda. Primera descarga del CMg: 429 tras ~24 requests y, además, se detectó que las páginas parten en 0 (faltaba la primera página del día) → corregido y checkpoint descartado. Ingesta del CMg rehecha: barras exactas (9 nodos de 220 kV), páginas de 50.000, 1 request cada 3 min, espera creciente ante 429 con presupuesto, corte limpio con checkpoint, catálogo de barras aunque la corrida se corte, corte por días vacíos. Nuevo workflow `backfill_cmg.yml` (4 corridas/día). La ingesta diaria del CMg repasa los últimos 7 días. 15 tests.
+- **2026-10-18** — Prueba de 1 día con páginas de 50.000: timeout + HTTP 502 y luego 429 (la clave seguía bloqueada por la ráfaga anterior). Se vuelve a 10.000 por página; un 429 persistente ahora corta la corrida sin error. Workflows reordenados: `cmg.yml` (único que usa la clave: día nuevo + historial, 4×/día) e `ingesta.yml` (clima, y vertimiento manual). Se deja enfriar la clave hasta la corrida automática de las 07:15 UTC. 16 tests.

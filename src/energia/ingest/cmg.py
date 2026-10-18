@@ -11,7 +11,7 @@ alcanza, se corta sin error y la próxima corrida retoma desde el checkpoint.
 
 Salida: data/raw/cmg_online/fecha=YYYY-MM-DD.json.gz (+ checkpoint `.parcial.json` si la corrida se corta).
 Uso:    python -m energia.ingest.cmg --desde 2026-10-01 --hasta 2026-10-07
-        python -m energia.ingest.cmg --desde 2024-07-15 --hasta ayer --orden desc   (backfill)
+        python -m energia.ingest.cmg --desde 2024-07-15 --hasta ayer --orden desc   (backfill, lo que hace cmg.yml)
 """
 from __future__ import annotations
 
@@ -74,7 +74,7 @@ def descargar_dia(
     raw_dir: Path,
     barras: list[str],
     recurso: str = RECURSO_DEFAULT,
-    limit: int = 50000,
+    limit: int = 10000,
     puede_seguir=lambda: True,
     vistas: Counter | None = None,
 ) -> str:
@@ -127,7 +127,7 @@ def main(argv: list[str] | None = None, raw_dir: Path = DATA_RAW, ref_dir: Path 
     p.add_argument("--hasta", type=date.fromisoformat, help="YYYY-MM-DD (por defecto: igual a --desde)")
     p.add_argument("--orden", choices=["asc", "desc"], default="asc", help="desc = días recientes primero (backfill)")
     p.add_argument("--recurso", default=RECURSO_DEFAULT)
-    p.add_argument("--limit", type=int, default=50000, help="registros por página")
+    p.add_argument("--limit", type=int, default=10000, help="registros por página (50.000 hace caer al servidor)")
     p.add_argument("--barras", default=",".join(BARRAS_DEFAULT), help="nombres exactos de barra_transf, con comas")
     p.add_argument("--intervalo-s", type=float, default=150, help="segundos mínimos entre requests")
     p.add_argument("--max-requests", type=int, default=100, help="tope de requests por corrida")

@@ -1,7 +1,8 @@
-name: Backfill CMg
-# Recorre el historial del CMg desde el 15-jul-2024 hacia atrás desde ayer (días recientes primero), a un
-# ritmo de 1 request cada 3 minutos para respetar el límite de la API del Coordinador. Cada corrida dura
-# hasta ~5 h y deja checkpoint; cuando no quedan días pendientes termina en segundos sin consultar la API.
+name: CMg Coordinador
+# Único workflow que usa la clave del Coordinador (así nunca hay dos corridas consultando a la vez).
+# Cada corrida recorre los días pendientes desde ayer hacia atrás hasta el 15-jul-2024: primero recoge el día
+# nuevo y después avanza el historial. 1 request cada 3 min (límite de la API), hasta ~5 h por corrida, con
+# checkpoint. Cuando el historial esté completo, cada corrida solo baja el día nuevo (~16 requests).
 on:
   schedule:
     - cron: "15 1,7,13,19 * * *"
@@ -9,17 +10,17 @@ on:
     inputs:
       desde: { description: "Inicio del historial (YYYY-MM-DD)", default: "2024-07-15" }
       max_minutos: { description: "Presupuesto de la corrida (minutos)", default: "290" }
+      sondeo: { description: "Correr antes el sondeo de endpoints (true/false)", default: "false" }
 
 permissions:
   contents: write
 
-# Misma cola que la ingesta diaria: nunca dos corridas usando la clave a la vez ni empujando al mismo tiempo.
-concurrency: ingesta
+concurrency: cen
 
 jobs:
-  backfill:
+  cmg:
     runs-on: ubuntu-latest
-    timeout-minutes: 320
+    timeout-minutes: 330
     env:
       PYTHONPATH: src
       CEN_USER_KEY: ${{ secrets.CEN_USER_KEY }}
@@ -28,10 +29,14 @@ jobs:
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install requests
+      - name: Sondeo de endpoints
+        if: inputs.sondeo == 'true' && env.CEN_USER_KEY != ''
+        continue-on-error: true
+        run: python -m energia.ingest.sondeo
       - name: Descargar días pendientes
+        id: cmg
         if: env.CEN_USER_KEY != ''
         continue-on-error: true
-        id: cmg
         run: |
           python -m energia.ingest.cmg --desde ${{ inputs.desde || '2024-07-15' }} \
             --hasta $(TZ=America/Santiago date -d yesterday +%F) --orden desc \
@@ -42,8 +47,8 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data
-          git diff --cached --quiet || git commit -m "data: backfill CMg $(date -u +%F) [Fuente: Coordinador Eléctrico Nacional]"
-          git pull --rebase -q && git push
+          git diff --cached --quiet || git commit -m "data: CMg $(date -u +%F) [Fuente: Coordinador Eléctrico Nacional]"
+          for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 10; done
       - name: Marcar fallida si hubo error
         if: steps.cmg.outcome == 'failure'
         run: exit 1

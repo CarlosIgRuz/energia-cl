@@ -1,17 +1,14 @@
 name: Ingesta diaria
-# Corre cada noche a las 07:30 UTC (04:30 Chile en horario de verano, 03:30 en invierno).
-# Ejecución manual: elegir fuentes y fechas (backfill) desde la pestaña Actions.
+# Fuentes sin clave. Cada noche a las 07:30 UTC (04:30 Chile en verano). Ejecución manual con fechas para backfill.
+# El CMg del Coordinador va aparte en cmg.yml (único workflow que usa esa clave).
 on:
   schedule:
     - cron: "30 7 * * *"
   workflow_dispatch:
     inputs:
-      fuentes:
-        description: "Fuentes separadas por coma: clima, cmg, vertimiento, sondeo"
-        default: "clima,cmg"
+      fuentes: { description: "Fuentes separadas por coma: clima, vertimiento", default: "clima" }
       desde: { description: "Fecha inicio (YYYY-MM-DD), vacío = ayer", required: false }
       hasta: { description: "Fecha fin (YYYY-MM-DD), vacío = igual a desde", required: false }
-      max_requests: { description: "Tope de requests a la API del Coordinador en esta corrida", default: "40" }
 
 permissions:
   contents: write
@@ -20,14 +17,13 @@ concurrency: ingesta
 
 env:
   PYTHONPATH: src
-  CEN_USER_KEY: ${{ secrets.CEN_USER_KEY }}
   DESDE: ${{ inputs.desde }}
   HASTA: ${{ inputs.hasta }}
 
 jobs:
   ingesta:
     runs-on: ubuntu-latest
-    timeout-minutes: 200
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
@@ -36,57 +32,31 @@ jobs:
       - name: Fuentes de esta corrida
         id: f
         run: |
-          if [ "${{ github.event_name }}" = "schedule" ]; then
-            # Vertimiento queda fuera del cron: el sitio responde 403 a la descarga automática (ver DECISIONS.md).
-            F="clima,cmg"
-          else
-            F="${{ inputs.fuentes }}"
-          fi
+          # Vertimiento queda fuera del cron: el sitio responde 403 a la descarga automática (ver DECISIONS.md).
+          F="${{ inputs.fuentes || 'clima' }}"
           echo "fuentes=,$F," >> "$GITHUB_OUTPUT"
           ARGS=""
           [ -n "$DESDE" ] && ARGS="$ARGS --desde $DESDE"
           [ -n "$HASTA" ] && ARGS="$ARGS --hasta $HASTA"
           echo "args=$ARGS" >> "$GITHUB_OUTPUT"
-
       - name: Clima (Open-Meteo)
         id: clima
         if: contains(steps.f.outputs.fuentes, ',clima,')
         continue-on-error: true
         run: python -m energia.ingest.clima ${{ steps.f.outputs.args }}
-
-      - name: Sondeo de endpoints del Coordinador
-        id: sondeo
-        if: contains(steps.f.outputs.fuentes, ',sondeo,') && env.CEN_USER_KEY != ''
-        continue-on-error: true
-        run: python -m energia.ingest.sondeo
-
-      - name: Costo marginal (Coordinador)
-        id: cmg
-        if: contains(steps.f.outputs.fuentes, ',cmg,') && env.CEN_USER_KEY != ''
-        continue-on-error: true
-        # Sin fechas: repasa los últimos 7 días (los ya descargados no gastan requests), así un día fallido se recupera solo.
-        run: |
-          ARGS="${{ steps.f.outputs.args }}"
-          [ -z "$ARGS" ] && ARGS="--desde $(TZ=America/Santiago date -d '7 days ago' +%F) --hasta $(TZ=America/Santiago date -d yesterday +%F)"
-          python -m energia.ingest.cmg $ARGS --max-requests ${{ inputs.max_requests || '40' }} --max-minutos 150
-
       - name: Vertimiento mensual (Coordinador)
         id: vertimiento
         if: contains(steps.f.outputs.fuentes, ',vertimiento,')
         continue-on-error: true
         run: python -m energia.ingest.vertimiento
-
       - name: Guardar datos y bitácora en el repo
         if: always()
         run: |
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add data
-          git diff --cached --quiet || git commit -m "data: ingesta $(date -u +%F) [Fuentes: Coordinador Eléctrico Nacional; Open-Meteo.com]"
-          git pull --rebase -q && git push
-
+          git diff --cached --quiet || git commit -m "data: ingesta $(date -u +%F) [Fuentes: Open-Meteo.com; Coordinador Eléctrico Nacional]"
+          for i in 1 2 3; do git pull --rebase -q && git push && break; sleep 10; done
       - name: Marcar la corrida como fallida si alguna fuente falló
-        if: steps.clima.outcome == 'failure' || steps.cmg.outcome == 'failure' || steps.vertimiento.outcome == 'failure' || steps.sondeo.outcome == 'failure'
-        run: |
-          echo "Alguna fuente falló: ver data/logs/corridas.jsonl"
-          exit 1
+        if: steps.clima.outcome == 'failure' || steps.vertimiento.outcome == 'failure'
+        run: exit 1

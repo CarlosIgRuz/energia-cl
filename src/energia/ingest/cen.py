@@ -126,9 +126,11 @@ class CENClient:
                 raise ErrorCEN(f"HTTP {resp.status_code} en {ruta}: {cuerpo}", resp.status_code) from None
             ultimo = f"HTTP {resp.status_code}"
             self._sleep(2 ** intento * 5)
+        if ultimo == "HTTP 429":  # seguimos limitados tras esperar: no es una falla, se retoma en la próxima corrida
+            raise LimiteAlcanzado(f"Límite de la API: {ruta} siguió respondiendo 429 tras {n429} esperas", 429)
         raise ErrorCEN(f"Fallo al consultar {ruta}: {ultimo}") from None
 
-    def find_by_date(self, ruta: str, desde: date, hasta: date, pagina: int = 0, limit: int = 50000):
+    def find_by_date(self, ruta: str, desde: date, hasta: date, pagina: int = 0, limit: int = 10000):
         """Las páginas de la API v4 parten en 0 (verificado: con page=1 faltaban los primeros registros del día)."""
         params = {"startDate": desde.isoformat(), "endDate": hasta.isoformat(), "page": pagina, "limit": limit}
         return self.get(ruta, params)

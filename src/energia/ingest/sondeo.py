@@ -19,7 +19,6 @@ CANDIDATOS = [
     # Confirmados el 2026-10-18: CMg en línea (cada 15 min, ~1.650 barras), CMg real definitivo (rezago de meses)
     # y generación real por central con tecnología (v3). Sin CMg programado ni demanda en v4.
     ("cmg_online", "costo-marginal-online/v4/findByDate", 2, "v4", 10),
-    ("cmg_online_pagina_50k", "costo-marginal-online/v4/findByDate", 2, "v4", 50000),
     ("cmg_real", "costo-marginal-real/v4/findByDate", 120, "v4", 10),
     ("generacion_real_v3", "generacion-real/v3/findByDate", 2, "v4", 10),
 ]

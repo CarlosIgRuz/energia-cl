@@ -1,96 +1,88 @@
 """Descarga de los reportes mensuales de Reducciones de generación renovable (vertimiento) del Coordinador.
 
 El Coordinador publica un XLSX por mes (por central × día × hora, hojas por tecnología) con 1–2 meses de
-rezago, en https://www.coordinador.cl/operacion/documentos/reducciones-de-generacion-renovable/ .
-Se rastrean las páginas por año, se descargan solo los archivos nuevos (sin re-descargar) y se guardan
-tal cual en data/raw/vertimiento/. Pocas requests y con pausa: es un sitio institucional.
+rezago. Las páginas índice del sitio están detrás de un desafío de Cloudflare para GitHub Actions, pero los
+archivos de `/wp-content/uploads/` sí se descargan (robots.txt los permite expresamente). Por eso se arma la URL
+directa con el patrón observado y se prueban las carpetas de publicación posibles (1 a 3 meses después del mes
+informado). Sin re-descargar, con pausa y User-Agent de navegador (autorizado por Carlos el 2026-10-19).
+
+Patrón: /wp-content/uploads/AAAA/MM/Reducciones-de-Energia-Eolica-Solar-Hidro-en-el-SEN_<Mes>-<AA>-PE-PFV_Publicar.xlsx
 """
 from __future__ import annotations
 
-import re
+import argparse
 import sys
 import time
 from datetime import date
-from html import unescape
 from pathlib import Path
-from urllib.parse import unquote, urljoin, urlparse
 
 import requests
 
-from energia.ingest.comun import DATA_RAW, LOGS, USER_AGENT_NAVEGADOR, registrar_corrida
+from energia.ingest.comun import DATA_RAW, LOGS, SITIO_CEN, USER_AGENT_NAVEGADOR, hoy_chile, registrar_corrida
 
-INDICE = "https://www.coordinador.cl/operacion/documentos/reducciones-de-generacion-renovable/"
 FUENTE = "Coordinador Eléctrico Nacional — Reducciones de generación renovable"
-_HREF = re.compile(r'href=["\']([^"\']+)["\']', re.IGNORECASE)
+MESES = ["Enero", "Febrero", "Marzo", "Abril", "Mayo", "Junio", "Julio", "Agosto", "Septiembre", "Octubre",
+         "Noviembre", "Diciembre"]
 
 
-def enlaces(html: str, base: str) -> list[str]:
-    return [urljoin(base, unescape(h)) for h in _HREF.findall(html)]
+def sumar_meses(anio: int, mes: int, n: int) -> tuple[int, int]:
+    k = anio * 12 + (mes - 1) + n
+    return k // 12, k % 12 + 1
 
 
-def paginas_anuales(html_indice: str, anios: list[int]) -> list[str]:
-    """Páginas por año enlazadas desde el índice, más la URL esperada para cada año pedido."""
-    urls = {f"{INDICE}reducciones-erv-{a}/" for a in anios}
-    for u in enlaces(html_indice, INDICE):
-        if "reducciones-erv-" in u and any(str(a) in u for a in anios):
-            urls.add(u if u.endswith("/") else u + "/")
-    return sorted(urls)
+def nombre_archivo(anio: int, mes: int) -> str:
+    return f"Reducciones-de-Energia-Eolica-Solar-Hidro-en-el-SEN_{MESES[mes - 1]}-{anio % 100:02d}-PE-PFV_Publicar.xlsx"
 
 
-def archivos_xlsx(html: str, base: str) -> list[str]:
-    vistos: dict[str, None] = {}
-    for u in enlaces(html, base):
-        if urlparse(u).path.lower().endswith(".xlsx") and "reducciones" in u.lower():
-            vistos[u] = None
-    return list(vistos)
+def urls_candidatas(anio: int, mes: int, hoy: date) -> list[str]:
+    """Carpetas de publicación posibles: 1, 2 y 3 meses después del mes informado (sin pasar de hoy)."""
+    out = []
+    for n in (1, 2, 3, 0):
+        a, m = sumar_meses(anio, mes, n)
+        if (a, m) <= (hoy.year, hoy.month):
+            out.append(f"{SITIO_CEN}/wp-content/uploads/{a}/{m:02d}/{nombre_archivo(anio, mes)}")
+    return out
 
 
-def nombre_archivo(url: str) -> str:
-    return unquote(Path(urlparse(url).path).name)
+def ruta_local(raw_dir: Path, anio: int, mes: int) -> Path:
+    return raw_dir / "vertimiento" / f"mes={anio}-{mes:02d}.xlsx"
 
 
 def main(argv: list[str] | None = None, raw_dir: Path = DATA_RAW, logs_dir: Path = LOGS,
-         session: requests.Session | None = None, pausa_s: float = 3.0) -> int:
-    import argparse
-
+         session: requests.Session | None = None, pausa_s: float = 3.0, hoy: date | None = None) -> int:
     p = argparse.ArgumentParser(description="Descarga reportes mensuales de vertimiento (Coordinador)")
-    p.add_argument("--anios", default=None, help="años separados por coma (por defecto: actual y anterior)")
+    p.add_argument("--desde", default="2024-07", help="primer mes AAAA-MM (por defecto 2024-07)")
     args = p.parse_args(argv)
-    hoy = date.today()
-    anios = [int(a) for a in args.anios.split(",")] if args.anios else [hoy.year - 1, hoy.year]
+    hoy = hoy or hoy_chile()
     session = session or requests.Session()
     session.headers.update({"User-Agent": USER_AGENT_NAVEGADOR})
-    destino = raw_dir / "vertimiento"
-    destino.mkdir(parents=True, exist_ok=True)
-    resumen = {"anios": anios, "requests": 0, "paginas": {}, "nuevos": [], "error": None}
-
-    def get(url: str) -> requests.Response:
-        resumen["requests"] += 1
-        r = session.get(url, timeout=120)
-        time.sleep(pausa_s)
-        return r
-
+    a, m = (int(x) for x in args.desde.split("-"))
+    resumen: dict = {"nuevos": [], "no_publicados": [], "bloqueados": [], "requests": 0, "error": None}
     try:
-        r = get(INDICE)
-        r.raise_for_status()
-        for pagina in paginas_anuales(r.text, anios):
-            rp = get(pagina)
-            resumen["paginas"][pagina] = rp.status_code
-            if rp.status_code != 200:
-                continue
-            for url in archivos_xlsx(rp.text, pagina):
-                archivo = destino / nombre_archivo(url)
-                if archivo.exists():
-                    continue
-                rx = get(url)
-                rx.raise_for_status()
-                archivo.write_bytes(rx.content)
-                resumen["nuevos"].append(archivo.name)
+        while (a, m) < (hoy.year, hoy.month):
+            destino = ruta_local(raw_dir, a, m)
+            if not destino.exists():
+                encontrado = False
+                for url in urls_candidatas(a, m, hoy):
+                    r = session.get(url, timeout=120)
+                    resumen["requests"] += 1
+                    time.sleep(pausa_s)
+                    if r.status_code == 200 and r.content[:2] == b"PK":  # un xlsx es un zip: empieza con "PK"
+                        destino.parent.mkdir(parents=True, exist_ok=True)
+                        destino.write_bytes(r.content)
+                        resumen["nuevos"].append({"mes": f"{a}-{m:02d}", "url": url, "bytes": len(r.content)})
+                        encontrado = True
+                        break
+                    if r.status_code == 403:
+                        resumen["bloqueados"].append(url)
+                if not encontrado:
+                    resumen["no_publicados"].append(f"{a}-{m:02d}")
+            a, m = sumar_meses(a, m, 1)
     except requests.RequestException as e:
         resumen["error"] = str(e)[:300]
         print(f"ERROR: {resumen['error']}", file=sys.stderr)
     registrar_corrida("vertimiento", resumen, logs_dir)
-    print(resumen)
+    print({k: (len(v) if isinstance(v, list) else v) for k, v in resumen.items()})
     return 1 if resumen["error"] else 0
 
 

@@ -34,34 +34,30 @@ def test_clima_un_archivo_por_dia_y_no_repite(tmp_path):
     assert len(s.llamadas) == 1  # todo existía: no hubo llamadas nuevas
 
 
-HTML_INDICE = '<a href="/operacion/documentos/reducciones-de-generacion-renovable/reducciones-erv-2025/">2025</a>'
-HTML_ANIO = (
-    '<a href="https://www.coordinador.cl/wp-content/uploads/2026/10/'
-    'Reducciones-de-Energia-Eolica-Solar-Hidro-en-el-SEN_Agosto-26-PE-PFV_Publicar.xlsx">Agosto</a>'
-    '<a href="/wp-content/uploads/2026/08/otro.pdf">pdf</a>'
-)
+def test_vertimiento_urls_candidatas():
+    urls = vertimiento.urls_candidatas(2026, 8, date(2026, 10, 19))
+    assert urls[0].endswith("/2026/09/Reducciones-de-Energia-Eolica-Solar-Hidro-en-el-SEN_Agosto-26-PE-PFV_Publicar.xlsx")
+    assert any("/2026/10/" in u for u in urls) and not any("/2026/11/" in u for u in urls)
+    assert vertimiento.urls_candidatas(2025, 12, date(2026, 10, 19))[0].endswith(
+        "/2026/01/Reducciones-de-Energia-Eolica-Solar-Hidro-en-el-SEN_Diciembre-25-PE-PFV_Publicar.xlsx")
 
 
-def test_vertimiento_extrae_enlaces():
-    paginas = vertimiento.paginas_anuales(HTML_INDICE, [2025, 2026])
-    assert any(p.endswith("reducciones-erv-2025/") for p in paginas)
-    assert any(p.endswith("reducciones-erv-2026/") for p in paginas)
-    xlsx = vertimiento.archivos_xlsx(HTML_ANIO, "https://www.coordinador.cl/")
-    assert len(xlsx) == 1 and vertimiento.nombre_archivo(xlsx[0]).endswith("Agosto-26-PE-PFV_Publicar.xlsx")
+def test_vertimiento_descarga_solo_nuevos_y_reconoce_bloqueos(tmp_path):
+    publicados = {"Julio-26": "/2026/08/", "Agosto-26": "/2026/10/"}
 
-
-def test_vertimiento_descarga_solo_nuevos(tmp_path):
     def responder(url, params):
-        if url.endswith(".xlsx"):
-            return FakeResp(200, content=b"PK-fake", text="")
-        return FakeResp(200, text=HTML_INDICE if url == vertimiento.INDICE else HTML_ANIO)
+        for mes, carpeta in publicados.items():
+            if mes in url and carpeta in url:
+                return FakeResp(200, content=b"PK-fake", text="")
+        return FakeResp(404, text="no")
 
     s = FakeSession(responder)
-    vertimiento.main(["--anios", "2026"], raw_dir=tmp_path, logs_dir=tmp_path, session=s, pausa_s=0)
-    archivos = list((tmp_path / "vertimiento").glob("*.xlsx"))
-    assert len(archivos) == 1
+    hoy = date(2026, 10, 19)
+    vertimiento.main(["--desde", "2026-07"], raw_dir=tmp_path, logs_dir=tmp_path, session=s, pausa_s=0, hoy=hoy)
+    assert sorted(p.name for p in (tmp_path / "vertimiento").glob("*.xlsx")) == ["mes=2026-07.xlsx", "mes=2026-08.xlsx"]
     n = len(s.llamadas)
-    vertimiento.main(["--anios", "2026"], raw_dir=tmp_path, logs_dir=tmp_path, session=s, pausa_s=0)
-    assert len(s.llamadas) == n + 2  # índice + página del año, sin volver a bajar el xlsx
+    vertimiento.main(["--desde", "2026-07"], raw_dir=tmp_path, logs_dir=tmp_path, session=s, pausa_s=0, hoy=hoy)
+    nuevas = [u for u, _ in s.llamadas[n:]]
+    assert nuevas and all("Septiembre-26" in u for u in nuevas)  # solo reintenta el mes aún no publicado
     log = [json.loads(x) for x in (tmp_path / "corridas_vertimiento.jsonl").read_text().splitlines()]
-    assert log[0]["nuevos"] and not log[1]["nuevos"]
+    assert len(log[0]["nuevos"]) == 2 and log[1]["nuevos"] == [] and log[1]["no_publicados"] == ["2026-09"]

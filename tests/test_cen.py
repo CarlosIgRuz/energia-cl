@@ -150,3 +150,10 @@ def test_presupuesto_de_requests_deja_parcial(tmp_path):
              logs_dir=tmp_path / "logs", client=c)
     assert c.requests_hechos == 3 and cmg.ruta_parcial(tmp_path / "raw", date(2026, 10, 10)).exists()
     assert Counter(json.loads((tmp_path / "ref/barras_cmg.json").read_text())) == {"CRUCERO_______220": 3}
+
+
+def test_ninguna_espera_pasa_la_hora_limite_de_la_corrida():
+    c, r = cliente(lambda u, p: FakeResp(429), espera_429_s=1200, espera_max_s=10**6, duracion_max_s=3000)
+    with pytest.raises(LimiteAlcanzado):
+        c.get("x", {}, reintentos=5)
+    assert sum(r.esperas) <= 3000 and r.esperas == [1200]  # la segunda (2400) se pasaría de los 3000 s

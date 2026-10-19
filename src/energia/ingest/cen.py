@@ -39,6 +39,7 @@ class CENClient:
         pausa_s: float = 1.0,
         espera_max_s: float = 1800,
         espera_429_s: float = 300,
+        duracion_max_s: float | None = None,
         sleep=time.sleep,
         reloj=time.time,
     ):
@@ -50,6 +51,8 @@ class CENClient:
         self.pausa_s = pausa_s
         self.espera_max_s = espera_max_s
         self.espera_429_s = espera_429_s
+        # Hora límite de la corrida: ninguna espera puede pasarse de ella (si no, GitHub cancela el job por tiempo).
+        self.limite_reloj = reloj() + duracion_max_s if duracion_max_s else None
         self._ultimo_request: float | None = None
         self._sleep = sleep
         self._reloj = reloj
@@ -65,6 +68,8 @@ class CENClient:
         return texto.replace(self.user_key, "***")
 
     def _esperar(self, segundos: float) -> None:
+        if self.limite_reloj is not None and self._reloj() + segundos > self.limite_reloj:
+            raise LimiteAlcanzado(f"Límite de la API: esperar {segundos:.0f} s pasaría el tiempo máximo de la corrida", 429)
         if self.espera_total_s + segundos > self.espera_max_s:  # presupuesto de espera acumulado por corrida
             raise LimiteAlcanzado(
                 f"Límite de la API: esperar {segundos:.0f} s superaría el máximo de {self.espera_max_s:.0f} s por corrida", 429)

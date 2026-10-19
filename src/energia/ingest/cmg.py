@@ -144,7 +144,8 @@ def main(argv: list[str] | None = None, raw_dir: Path = DATA_RAW, ref_dir: Path 
     barras = [b.strip() for b in args.barras.split(",") if b.strip()]
     # Ante un 429 se espera lo mismo que el intervalo (mínimo 5 min): los reintentos rápidos solo alargan el bloqueo.
     client = client or CENClient(pausa_s=args.intervalo_s, espera_429_s=max(300, args.intervalo_s),
-                                 espera_max_s=args.max_minutos * 60)
+                                 espera_max_s=args.max_minutos * 60,
+                                 duracion_max_s=args.max_minutos * 60)
     inicio = reloj()
 
     def puede_seguir() -> bool:

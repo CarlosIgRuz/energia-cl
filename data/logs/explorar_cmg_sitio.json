@@ -1,0 +1,21 @@
+{
+ "ejecutado_en": "2026-10-19T10:06:37+00:00",
+ "muestras": {
+  "2026": {
+   "url_anio": "https://www.coordinador.cl/mercados/documentos/transferencias-economicas/costo-marginal-real/2026-costo-marginal-real/",
+   "status_anio": 403,
+   "meses": []
+  },
+  "2025": {
+   "url_anio": "https://www.coordinador.cl/mercados/documentos/transferencias-economicas/costo-marginal-real/2025-costo-marginal-real/",
+   "status_anio": 403,
+   "meses": []
+  },
+  "2024": {
+   "url_anio": "https://www.coordinador.cl/mercados/documentos/transferencias-economicas/costo-marginal-real/2024-costo-marginal-real-transferencias-economicas/",
+   "status_anio": 403,
+   "meses": []
+  }
+ },
+ "requests": 3
+}

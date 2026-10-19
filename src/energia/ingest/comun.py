@@ -14,6 +14,12 @@ DATA_REF = RAIZ / "data" / "ref"
 LOGS = RAIZ / "data" / "logs"
 TZ_CHILE = ZoneInfo("America/Santiago")
 USER_AGENT = "Mozilla/5.0 (compatible; energia-cl/0.1; +https://github.com/CarlosIgRuz/energia-cl)"
+# El sitio web del Coordinador responde 403 a clientes que no se identifican como navegador. Carlos autorizó
+# (2026-10-19) usar un User-Agent de navegador estándar solo para sus archivos públicos, con pocas descargas y pausa.
+USER_AGENT_NAVEGADOR = (
+    "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/126.0 Safari/537.36"
+)
+SITIO_CEN = "https://www.coordinador.cl"
 
 
 def hoy_chile() -> date:

@@ -17,7 +17,7 @@ from urllib.parse import unquote, urljoin, urlparse
 
 import requests
 
-from energia.ingest.comun import DATA_RAW, LOGS, USER_AGENT, registrar_corrida
+from energia.ingest.comun import DATA_RAW, LOGS, USER_AGENT_NAVEGADOR, registrar_corrida
 
 INDICE = "https://www.coordinador.cl/operacion/documentos/reducciones-de-generacion-renovable/"
 FUENTE = "Coordinador Eléctrico Nacional — Reducciones de generación renovable"
@@ -59,7 +59,7 @@ def main(argv: list[str] | None = None, raw_dir: Path = DATA_RAW, logs_dir: Path
     hoy = date.today()
     anios = [int(a) for a in args.anios.split(",")] if args.anios else [hoy.year - 1, hoy.year]
     session = session or requests.Session()
-    session.headers.update({"User-Agent": USER_AGENT})
+    session.headers.update({"User-Agent": USER_AGENT_NAVEGADOR})
     destino = raw_dir / "vertimiento"
     destino.mkdir(parents=True, exist_ok=True)
     resumen = {"anios": anios, "requests": 0, "paginas": {}, "nuevos": [], "error": None}

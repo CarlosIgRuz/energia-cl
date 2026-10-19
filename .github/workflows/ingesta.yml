@@ -6,7 +6,7 @@ on:
     - cron: "30 7 * * *"
   workflow_dispatch:
     inputs:
-      fuentes: { description: "Fuentes separadas por coma: clima, vertimiento", default: "clima" }
+      fuentes: { description: "Fuentes separadas por coma: clima, vertimiento, explorar_cmg", default: "clima" }
       desde: { description: "Fecha inicio (YYYY-MM-DD), vacío = ayer", required: false }
       hasta: { description: "Fecha fin (YYYY-MM-DD), vacío = igual a desde", required: false }
 
@@ -28,11 +28,10 @@ jobs:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
-      - run: pip install requests
+      - run: pip install requests openpyxl
       - name: Fuentes de esta corrida
         id: f
         run: |
-          # Vertimiento queda fuera del cron: el sitio responde 403 a la descarga automática (ver DECISIONS.md).
           F="${{ inputs.fuentes || 'clima' }}"
           echo "fuentes=,$F," >> "$GITHUB_OUTPUT"
           ARGS=""
@@ -49,6 +48,11 @@ jobs:
         if: contains(steps.f.outputs.fuentes, ',vertimiento,')
         continue-on-error: true
         run: python -m energia.ingest.vertimiento
+      - name: Exploración de los ZIP diarios de CMg del sitio del Coordinador
+        id: explorar
+        if: contains(steps.f.outputs.fuentes, ',explorar_cmg,')
+        continue-on-error: true
+        run: python -m energia.ingest.explorar_sitio
       - name: Guardar datos y bitácora en el repo
         if: always()
         run: |
@@ -64,5 +68,5 @@ jobs:
           done
           echo "No se pudieron subir los datos"; exit 1
       - name: Marcar la corrida como fallida si alguna fuente falló
-        if: steps.clima.outcome == 'failure' || steps.vertimiento.outcome == 'failure'
+        if: steps.clima.outcome == 'failure' || steps.vertimiento.outcome == 'failure' || steps.explorar.outcome == 'failure'
         run: exit 1

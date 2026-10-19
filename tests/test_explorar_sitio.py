@@ -43,3 +43,18 @@ def test_explorar_recorre_anio_mes_dia_y_lista_el_zip(tmp_path, monkeypatch):
     assert m["archivos_dia"][0].endswith("A_261014.zip")
     assert m["descargas"][0]["miembros"][0]["nombre"] == "cmg_real.csv"
     assert m["descargas"][0]["muestras"][0]["primeras_lineas"][0] == "barra,hora,cmg"
+
+
+def test_probar_sitio_registra_status_y_cabeceras(tmp_path):
+    from conftest import FakeSession
+
+    from energia.ingest import probar_sitio
+
+    s = FakeSession(lambda u, p: FakeResp(403, text="<html>Access denied</html>", headers={"Server": "cloudflare"}))
+    s.get = lambda url, timeout=None, stream=None: FakeResp(403, text="<html>Access denied</html>",
+                                                             headers={"Server": "cloudflare"})
+    probar_sitio.main(logs_dir=tmp_path, session=s, pausa_s=0)
+    res = json.loads((tmp_path / "probar_sitio.json").read_text())["resultados"]
+    assert len(res) == len(probar_sitio.URLS)
+    primero = next(iter(res.values()))
+    assert primero["status"] == 403 and primero["headers"]["Server"] == "cloudflare"

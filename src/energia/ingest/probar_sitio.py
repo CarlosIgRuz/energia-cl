@@ -29,11 +29,11 @@ HEADERS = {
 }
 
 
-def main(logs_dir: Path = LOGS, session=None, pausa_s: float = 3.0) -> int:
+def main(logs_dir: Path = LOGS, session=None, pausa_s: float = 3.0, urls: list[str] | None = None) -> int:
     s = session or requests.Session()
     s.headers.update(HEADERS)
     res = {}
-    for u in URLS:
+    for u in urls or (sys.argv[1:] if __name__ == "__main__" and len(sys.argv) > 1 else URLS):
         try:
             r = s.get(u, timeout=60, stream=True)
             cuerpo = next(r.iter_content(600), b"") if hasattr(r, "iter_content") else r.content[:600]

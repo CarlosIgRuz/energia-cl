@@ -9,6 +9,7 @@ on:
       fuentes: { description: "Fuentes separadas por coma: clima, vertimiento, explorar_cmg, probar_sitio", default: "clima" }
       desde: { description: "Fecha inicio (YYYY-MM-DD), vacío = ayer", required: false }
       hasta: { description: "Fecha fin (YYYY-MM-DD), vacío = igual a desde", required: false }
+      urls: { description: "probar_sitio: URLs separadas por espacio (opcional)", required: false }
 
 permissions:
   contents: write
@@ -56,7 +57,7 @@ jobs:
       - name: Prueba de acceso al sitio del Coordinador
         if: contains(steps.f.outputs.fuentes, ',probar_sitio,')
         continue-on-error: true
-        run: python -m energia.ingest.probar_sitio
+        run: python -m energia.ingest.probar_sitio ${{ inputs.urls }}
       - name: Guardar datos y bitácora en el repo
         if: always()
         run: |

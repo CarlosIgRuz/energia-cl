@@ -1,0 +1,53 @@
+{
+ "ejecutado_en": "2026-10-19T10:08:08+00:00",
+ "resultados": {
+  "https://www.coordinador.cl/wp-content/uploads/2026/10/Antecedentes_CMG_Real_pre_261014.zip": {
+   "status": 403,
+   "headers": {
+    "Content-Type": "text/html; charset=UTF-8",
+    "Server": "cloudflare",
+    "set-cookie": "__cf_bm=UJvgwlStAI48CzNYH.4xeGm4ikdBz6dLRKE7.UY32xE-1792404471.4788222-1.0.1.1-QrUxogJgh_kqoUkFZ65furLg1FruxKr.s2P8rtcGFI91Rl5RHm9v2jta6z926vRGezZX6Zs.NETiPC97CL8rbBEfVFFHKDg96ikcQQA56VLUOVtSAq9d0AMdfq99KkxF; HttpOnly; SameSite=None; Secure; Path=/; Domain=coordinador.cl; Expires=Mon, 19 Oct 2026 10:37:51 GMT",
+    "CF-RAY": "a4cefa6abd562163-LAX"
+   },
+   "inicio_cuerpo": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"content-security-policy\" content=\"default-src &#39;none&#39;; script-src &#39"
+  },
+  "https://www.coordinador.cl/wp-content/uploads/2026/10/Reducciones-de-Energia-Eolica-Solar-Hidro-en-el-SEN_Agosto-26-PE-PFV_Publicar.xlsx": {
+   "status": 200,
+   "headers": {
+    "Content-Type": "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+    "Content-Length": "2272461",
+    "Server": "cloudflare",
+    "Set-Cookie": "cookiesession1=678B2882593AFBC92115F057E7CD6438;Expires=Tue, 19 Oct 2027 10:07:55 GMT;Path=/;HttpOnly",
+    "CF-RAY": "a4cefa7deef45ea4-LAX"
+   },
+   "inicio_cuerpo": "<600 bytes binarios>"
+  },
+  "https://www.coordinador.cl/robots.txt": {
+   "status": 200,
+   "headers": {
+    "Content-Type": "text/plain",
+    "Server": "cloudflare",
+    "CF-RAY": "a4cefa95a8170c4e-LAX"
+   },
+   "inicio_cuerpo": "User-agent: *\r\n\r\nAllow: /wp-admin/admin-ajax.php\r\n\r\nAllow: /wp-content/uploads/*\r\n\r\nAllow: /wp-content/*.js\r\n\r\nAllow: /wp-content/*.css\r\n\r\nAllow: /wp-includes/*.js\r\n\r\nAllow: /wp-includes/*.css\r\n\r\nAllow: /\r\n\r\nDisallow: /wp-admin/\r\n\r\nDisallow: /wp-includes/\r\n\r\nDisallow: /wp-content/\r\n\r\n\r\n\r\nSitemap: https://www.coordinador.cl/sitemap.xml\r\n\r\nSitemap: https://www.coordinador.cl/sitemap.rss"
+  },
+  "https://www.coordinador.cl/": {
+   "status": 403,
+   "headers": {
+    "Content-Type": "text/html; charset=UTF-8",
+    "Server": "cloudflare",
+    "CF-RAY": "a4cefaad79b52163-LAX"
+   },
+   "inicio_cuerpo": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"content-security-policy\" content=\"default-src &#39;none&#39;; script-src &#39"
+  },
+  "https://www.coordinador.cl/mercados/documentos/transferencias-economicas/costo-marginal-real/": {
+   "status": 403,
+   "headers": {
+    "Content-Type": "text/html; charset=UTF-8",
+    "Server": "cloudflare",
+    "CF-RAY": "a4cefac0bafce9e3-LAX"
+   },
+   "inicio_cuerpo": "<!DOCTYPE html><html lang=\"en-US\"><head><title>Just a moment...</title><meta http-equiv=\"Content-Type\" content=\"text/html; charset=UTF-8\"><meta http-equiv=\"X-UA-Compatible\" content=\"IE=Edge\"><meta name=\"robots\" content=\"noindex,nofollow\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta http-equiv=\"content-security-policy\" content=\"default-src &#39;none&#39;; script-src &#39"
+  }
+ }
+}

@@ -26,7 +26,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 60
     steps:
+      # Siempre el último estado de main: una corrida que esperó en cola arrancaría si no con la versión del
+      # momento en que se encoló (repetiría páginas y chocaría al guardar con lo que subió la corrida anterior).
       - uses: actions/checkout@v4
+        with: { ref: main }
       - uses: actions/setup-python@v5
         with: { python-version: "3.11" }
       - run: pip install requests openpyxl
